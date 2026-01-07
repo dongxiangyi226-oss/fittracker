@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FitTracker - 减脂追踪系统</title>
+
+    <!-- PWA 配置 -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FitTracker">
+    <meta name="application-name" content="FitTracker">
+    <meta name="description" content="专业的减脂追踪应用，记录饮食、运动，分析热量数据">
+
+    <!-- 图标 -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-152x152.png">
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 侧边导航栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>FitTracker</span>
+                </h1>
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+            <nav class="nav-menu">
+                <a href="#dashboard" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>仪表盘</span>
+                </a>
+                <a href="#food" class="nav-item" data-page="food">
+                    <i class="fas fa-utensils"></i>
+                    <span>食物记录</span>
+                </a>
+                <a href="#workout" class="nav-item" data-page="workout">
+                    <i class="fas fa-running"></i>
+                    <span>运动记录</span>
+                </a>
+                <a href="#analytics" class="nav-item" data-page="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>数据分析</span>
+                </a>
+                <a href="#notes" class="nav-item" data-page="notes">
+                    <i class="fas fa-book"></i>
+                    <span>笔记</span>
+                </a>
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>设置</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="username" id="displayUsername">用户</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 顶部标题栏 -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="mobile-menu-btn" id="mobileMenuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h2 class="page-title" id="pageTitle">仪表盘</h2>
+                </div>
+                <div class="header-right">
+                    <span class="current-date" id="currentDate"></span>
+                </div>
+            </header>
+
+            <!-- 页面内容容器 -->
+            <div class="content-wrapper">
+                <!-- 仪表盘页面 -->
+                <section class="page active" id="page-dashboard">
+                    <div class="dashboard-grid">
+                        <!-- 数据卡片区 -->
+                        <div class="stats-cards">
+                            <div class="stat-card calories-in">
+                                <div class="stat-icon">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">今日摄入</span>
+                                    <span class="stat-value" id="todayCaloriesIn">0</span>
+                                    <span class="stat-unit">kcal</span>
+                                </div>
+                            </div>
+                            <div class="stat-card calories-out">
+                                <div class="stat-icon">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">今日消耗</span>
+                                    <span class="stat-value" id="todayCaloriesOut">0</span>
+                                    <span class="stat-unit">kcal</span>
+                                </div>
+                            </div>
+                            <div class="stat-card calorie-diff">
+                                <div class="stat-icon">
+                                    <i class="fas fa-balance-scale"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">热量差</span>
+                                    <span class="stat-value" id="calorieBalance">0</span>
+                                    <span class="stat-unit">kcal</span>
+                                </div>
+                            </div>
+                            <div class="stat-card streak">
+                                <div class="stat-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">连续记录</span>
+                                    <span class="stat-value" id="streakDays">0</span>
+                                    <span class="stat-unit">天</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 目标进度 -->
+                        <div class="card goal-progress">
+                            <h3 class="card-title">今日目标</h3>
+                            <div class="progress-ring-container">
+                                <div class="progress-ring" id="goalProgressRing">
+                                    <svg viewBox="0 0 100 100">
+                                        <circle class="progress-bg" cx="50" cy="50" r="45"></circle>
+                                        <circle class="progress-bar" cx="50" cy="50" r="45" id="progressCircle"></circle>
+                                    </svg>
+                                    <div class="progress-text">
+                                        <span class="progress-value" id="goalProgress">0</span>
+                                        <span class="progress-unit">%</span>
+                                    </div>
+                                </div>
+                                <div class="goal-details">
+                                    <p><span id="currentCalories">0</span> / <span id="goalCalories">2000</span> kcal</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 今日餐食 -->
+                        <div class="card today-meals">
+                            <div class="card-header">
+                                <h3 class="card-title">今日餐食</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openFoodModal()">
+                                    <i class="fas fa-plus"></i> 添加
+                                </button>
+                            </div>
+                            <div class="meals-list" id="todayMealsList">
+                                <div class="empty-state">
+                                    <i class="fas fa-utensils"></i>
+                                    <p>今天还没有记录食物</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 宏量营养素饼图 -->
+                        <div class="card macro-chart">
+                            <h3 class="card-title">营养素占比</h3>
+                            <div id="macroChart" class="chart-container"></div>
+                            <div class="macro-legend">
+                                <div class="legend-item">
+                                    <span class="legend-color carbs"></span>
+                                    <span>碳水: <span id="carbsGrams">0</span>g</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color protein"></span>
+                                    <span>蛋白质: <span id="proteinGrams">0</span>g</span>
+                                </div>
+                                <div class="legend-item">
+                                    <span class="legend-color fat"></span>
+                                    <span>脂肪: <span id="fatGrams">0</span>g</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 今日运动 -->
+                        <div class="card today-workout">
+                            <div class="card-header">
+                                <h3 class="card-title">今日运动</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openWorkoutModal()">
+                                    <i class="fas fa-plus"></i> 添加
+                                </button>
+                            </div>
+                            <div class="workout-list" id="todayWorkoutList">
+                                <div class="empty-state">
+                                    <i class="fas fa-running"></i>
+                                    <p>今天还没有运动记录</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 食物记录页面 -->
+                <section class="page" id="page-food">
+                    <div class="page-header">
+                        <div class="date-picker">
+                            <button class="btn btn-icon" onclick="changeDate(-1)">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <input type="date" id="foodDatePicker" onchange="loadFoodRecords()">
+                            <button class="btn btn-icon" onclick="changeDate(1)">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" onclick="openFoodModal()">
+                            <i class="fas fa-plus"></i> 添加食物
+                        </button>
+                    </div>
+
+                    <!-- 每日汇总 -->
+                    <div class="daily-summary card">
+                        <div class="summary-item">
+                            <span class="summary-label">总热量</span>
+                            <span class="summary-value" id="foodTotalCalories">0</span>
+                            <span class="summary-unit">kcal</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">碳水</span>
+                            <span class="summary-value" id="foodTotalCarbs">0</span>
+                            <span class="summary-unit">g</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">蛋白质</span>
+                            <span class="summary-value" id="foodTotalProtein">0</span>
+                            <span class="summary-unit">g</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">脂肪</span>
+                            <span class="summary-value" id="foodTotalFat">0</span>
+                            <span class="summary-unit">g</span>
+                        </div>
+                    </div>
+
+                    <!-- 餐次Tab -->
+                    <div class="meal-tabs">
+                        <button class="meal-tab active" data-meal="all">全部</button>
+                        <button class="meal-tab" data-meal="breakfast">早餐</button>
+                        <button class="meal-tab" data-meal="lunch">午餐</button>
+                        <button class="meal-tab" data-meal="dinner">晚餐</button>
+                        <button class="meal-tab" data-meal="snack">加餐</button>
+                    </div>
+
+                    <!-- 食物列表 -->
+                    <div class="food-list" id="foodList">
+                        <div class="empty-state">
+                            <i class="fas fa-utensils"></i>
+                            <p>暂无食物记录</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 运动记录页面 -->
+                <section class="page" id="page-workout">
+                    <div class="page-header">
+                        <div class="date-picker">
+                            <button class="btn btn-icon" onclick="changeWorkoutDate(-1)">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <input type="date" id="workoutDatePicker" onchange="loadWorkoutRecords()">
+                            <button class="btn btn-icon" onclick="changeWorkoutDate(1)">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="openUploadModal()">
+                                <i class="fas fa-upload"></i> 导入数据
+                            </button>
+                            <button class="btn btn-primary" onclick="openWorkoutModal()">
+                                <i class="fas fa-plus"></i> 手动添加
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 运动汇总 -->
+                    <div class="workout-summary card">
+                        <div class="summary-item">
+                            <span class="summary-label">总消耗</span>
+                            <span class="summary-value" id="workoutTotalCalories">0</span>
+                            <span class="summary-unit">kcal</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">总时长</span>
+                            <span class="summary-value" id="workoutTotalDuration">0</span>
+                            <span class="summary-unit">分钟</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">总距离</span>
+                            <span class="summary-value" id="workoutTotalDistance">0</span>
+                            <span class="summary-unit">公里</span>
+                        </div>
+                    </div>
+
+                    <!-- 运动列表 -->
+                    <div class="workout-records" id="workoutList">
+                        <div class="empty-state">
+                            <i class="fas fa-running"></i>
+                            <p>暂无运动记录</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 数据分析页面 -->
+                <section class="page" id="page-analytics">
+                    <div class="page-header">
+                        <div class="period-selector">
+                            <button class="period-btn active" data-period="week">周</button>
+                            <button class="period-btn" data-period="month">月</button>
+                        </div>
+                    </div>
+
+                    <div class="analytics-grid">
+                        <!-- 热量趋势图 -->
+                        <div class="card chart-card">
+                            <h3 class="card-title">热量趋势</h3>
+                            <div id="caloriesTrendChart" class="chart-container-lg"></div>
+                        </div>
+
+                        <!-- 热量收支平衡 -->
+                        <div class="card chart-card">
+                            <h3 class="card-title">热量收支</h3>
+                            <div id="calorieBalanceChart" class="chart-container-lg"></div>
+                        </div>
+
+                        <!-- 每餐热量分布 -->
+                        <div class="card chart-card">
+                            <h3 class="card-title">餐次分布</h3>
+                            <div id="mealDistributionChart" class="chart-container-lg"></div>
+                        </div>
+
+                        <!-- 运动统计 -->
+                        <div class="card chart-card">
+                            <h3 class="card-title">运动消耗趋势</h3>
+                            <div id="workoutTrendChart" class="chart-container-lg"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 笔记页面 -->
+                <section class="page" id="page-notes">
+                    <div class="page-header">
+                        <input type="text" class="search-input" placeholder="搜索笔记..." id="noteSearchInput" oninput="searchNotes()">
+                        <button class="btn btn-primary" onclick="openNoteModal()">
+                            <i class="fas fa-plus"></i> 新建笔记
+                        </button>
+                    </div>
+
+                    <div class="notes-grid" id="notesList">
+                        <div class="empty-state">
+                            <i class="fas fa-book"></i>
+                            <p>暂无笔记</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 设置页面 -->
+                <section class="page" id="page-settings">
+                    <div class="settings-container">
+                        <div class="card settings-card">
+                            <h3 class="card-title">个人信息</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label>昵称</label>
+                                    <input type="text" id="settingsNickname" placeholder="请输入昵称">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-card">
+                            <h3 class="card-title">目标设置</h3>
+                            <div class="settings-form">
+                                <div class="form-group">
+                                    <label>每日热量目标 (kcal)</label>
+                                    <input type="number" id="settingsCalorieGoal" value="2000" min="1000" max="5000">
+                                </div>
+                                <div class="form-group">
+                                    <label>碳水目标 (g)</label>
+                                    <input type="number" id="settingsCarbsGoal" value="250" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>蛋白质目标 (g)</label>
+                                    <input type="number" id="settingsProteinGoal" value="100" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>脂肪目标 (g)</label>
+                                    <input type="number" id="settingsFatGoal" value="65" min="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card settings-card">
+                            <h3 class="card-title">数据管理</h3>
+                            <div class="settings-actions">
+                                <button class="btn btn-secondary" onclick="exportData()">
+                                    <i class="fas fa-download"></i> 导出数据
+                                </button>
+                                <button class="btn btn-secondary" onclick="importDataFile()">
+                                    <i class="fas fa-upload"></i> 导入数据
+                                </button>
+                                <button class="btn btn-danger" onclick="clearAllData()">
+                                    <i class="fas fa-trash"></i> 清空数据
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card settings-card" id="installCard" style="display: none;">
+                            <h3 class="card-title">安装应用</h3>
+                            <p style="color: #a0a0a0; margin-bottom: 15px;">将 FitTracker 安装到手机桌面，获得更好的使用体验</p>
+                            <button class="btn btn-primary" id="installBtn" style="display: none;">
+                                <i class="fas fa-download"></i> 安装到桌面
+                            </button>
+                        </div>
+
+                        <button class="btn btn-primary btn-block" onclick="saveSettings()">
+                            <i class="fas fa-save"></i> 保存设置
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- 添加食物模态框 -->
+    <div class="modal" id="foodModal">
+        <div class="modal-overlay" onclick="closeFoodModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="foodModalTitle">添加食物</h3>
+                <button class="modal-close" onclick="closeFoodModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="foodForm">
+                    <input type="hidden" id="foodId">
+                    <div class="form-group">
+                        <label>餐次 *</label>
+                        <select id="mealType" required>
+                            <option value="breakfast">早餐</option>
+                            <option value="lunch">午餐</option>
+                            <option value="dinner">晚餐</option>
+                            <option value="snack">加餐</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>食物名称 *</label>
+                        <input type="text" id="foodName" required placeholder="如：鸡胸肉">
+                        <div class="food-suggestions" id="foodSuggestions"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>重量 (克) *</label>
+                        <input type="number" id="foodWeight" required min="1" placeholder="100">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>热量 (kcal) *</label>
+                            <input type="number" id="foodCalories" required min="0" placeholder="165">
+                        </div>
+                        <div class="form-group">
+                            <label>碳水 (g)</label>
+                            <input type="number" id="foodCarbs" min="0" step="0.1" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>蛋白质 (g)</label>
+                            <input type="number" id="foodProtein" min="0" step="0.1" placeholder="31">
+                        </div>
+                        <div class="form-group">
+                            <label>脂肪 (g)</label>
+                            <input type="number" id="foodFat" min="0" step="0.1" placeholder="3.6">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <textarea id="foodNote" placeholder="可选备注信息"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFoodModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveFood()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加运动模态框 -->
+    <div class="modal" id="workoutModal">
+        <div class="modal-overlay" onclick="closeWorkoutModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="workoutModalTitle">添加运动</h3>
+                <button class="modal-close" onclick="closeWorkoutModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="workoutForm">
+                    <input type="hidden" id="workoutId">
+                    <div class="form-group">
+                        <label>运动类型 *</label>
+                        <select id="workoutType" required>
+                            <option value="running">跑步</option>
+                            <option value="cycling">骑行</option>
+                            <option value="swimming">游泳</option>
+                            <option value="strength">力量训练</option>
+                            <option value="walking">步行</option>
+                            <option value="hiit">HIIT</option>
+                            <option value="yoga">瑜伽</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>开始时间 *</label>
+                        <input type="datetime-local" id="workoutStartTime" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>时长 (分钟) *</label>
+                            <input type="number" id="workoutDuration" required min="1" placeholder="30">
+                        </div>
+                        <div class="form-group">
+                            <label>消耗热量 (kcal)</label>
+                            <input type="number" id="workoutCalories" min="0" placeholder="200">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>距离 (公里)</label>
+                            <input type="number" id="workoutDistance" min="0" step="0.01" placeholder="5">
+                        </div>
+                        <div class="form-group">
+                            <label>平均心率</label>
+                            <input type="number" id="workoutAvgHR" min="0" placeholder="140">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <textarea id="workoutNote" placeholder="可选备注信息"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeWorkoutModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveWorkout()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加笔记模态框 -->
+    <div class="modal" id="noteModal">
+        <div class="modal-overlay" onclick="closeNoteModal()"></div>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="noteModalTitle">新建笔记</h3>
+                <button class="modal-close" onclick="closeNoteModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <input type="hidden" id="noteId">
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="date" id="noteDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>标题</label>
+                        <input type="text" id="noteTitle" placeholder="笔记标题（可选）">
+                    </div>
+                    <div class="form-group">
+                        <label>内容 *</label>
+                        <textarea id="noteContent" required placeholder="记录你的减脂心得、身体变化..." rows="8"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeNoteModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveNote()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传运动数据模态框 -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-overlay" onclick="closeUploadModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>导入运动数据</h3>
+                <button class="modal-close" onclick="closeUploadModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖拽文件到此处或点击上传</p>
+                    <span class="upload-hint">支持 FIT, TCX, GPX 格式</span>
+                    <input type="file" id="fileInput" accept=".fit,.tcx,.gpx" hidden>
+                </div>
+                <div class="upload-info">
+                    <p><i class="fas fa-info-circle"></i> 从 COROS 官网 (training.coros.com) 导出运动数据后上传</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 导入数据文件输入 -->
+    <input type="file" id="importDataInput" accept=".json" hidden>
+
+    <script src="js/storage.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/charts.js"></script>
+
+    <!-- Service Worker 注册 -->
+    <script>
+        // 注册 Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('ServiceWorker 注册成功:', registration.scope);
+
+                        // 检查更新
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // 新版本可用，提示用户刷新
+                                    if (confirm('发现新版本，是否刷新页面？')) {
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.log('ServiceWorker 注册失败:', error);
+                    });
+            });
+        }
+
+        // PWA 安装提示
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // 显示安装卡片和按钮
+            const installCard = document.getElementById('installCard');
+            const installBtn = document.getElementById('installBtn');
+            if (installCard) {
+                installCard.style.display = 'block';
+            }
+            if (installBtn) {
+                installBtn.style.display = 'inline-flex';
+                installBtn.addEventListener('click', () => {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('用户接受了安装');
+                            if (installCard) installCard.style.display = 'none';
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+            }
+        });
+
+        // 检测是否已安装
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA 已安装');
+            deferredPrompt = null;
+        });
+    </script>
+</body>
+</html>

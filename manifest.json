@@ -1,0 +1,80 @@
+{
+  "name": "FitTracker - 减脂追踪系统",
+  "short_name": "FitTracker",
+  "description": "专业的减脂追踪应用，记录饮食、运动，分析热量数据",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "scope": "./",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "添加食物",
+      "short_name": "添加食物",
+      "description": "快速记录食物摄入",
+      "url": "./index.html#food",
+      "icons": [{"src": "icons/icon-96x96.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "添加运动",
+      "short_name": "添加运动",
+      "description": "快速记录运动消耗",
+      "url": "./index.html#workout",
+      "icons": [{"src": "icons/icon-96x96.png", "sizes": "96x96"}]
+    }
+  ]
+}
