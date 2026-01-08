@@ -97,6 +97,7 @@ function navigateTo(page) {
         notes: '笔记',
         study: '学习记录',
         weight: '体重记录',
+        ai: 'AI 助手',
         settings: '设置'
     };
     document.getElementById('pageTitle').textContent = titles[page] || '';
@@ -126,6 +127,9 @@ function navigateTo(page) {
             break;
         case 'weight':
             loadWeightPage();
+            break;
+        case 'ai':
+            loadAiPage();
             break;
         case 'settings':
             loadSettings();
@@ -2190,4 +2194,351 @@ function renderWeightTrendChart() {
     window.addEventListener('resize', () => {
         chart.resize();
     });
+}
+
+// ==================== AI 助手功能 ====================
+let aiChatHistory = [];
+
+function loadAiPage() {
+    // 检查API Key是否已配置
+    const apiKey = localStorage.getItem('fittracker_ai_api_key');
+    updateAiConfigStatus(apiKey);
+
+    // 如果有API Key，显示在输入框中（隐藏部分字符）
+    if (apiKey) {
+        document.getElementById('aiApiKey').value = apiKey.substring(0, 12) + '...' + apiKey.slice(-4);
+    }
+
+    // 加载聊天历史
+    loadAiChatHistory();
+}
+
+function updateAiConfigStatus(apiKey) {
+    const statusElement = document.getElementById('aiConfigStatus');
+    const configCard = document.getElementById('aiConfigCard');
+
+    if (apiKey) {
+        statusElement.innerHTML = '<i class="fas fa-check-circle"></i> 已配置';
+        statusElement.className = 'ai-config-status configured';
+        configCard.classList.add('configured');
+    } else {
+        statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> 未配置';
+        statusElement.className = 'ai-config-status not-configured';
+        configCard.classList.remove('configured');
+    }
+}
+
+function saveApiKey() {
+    const apiKeyInput = document.getElementById('aiApiKey');
+    let apiKey = apiKeyInput.value.trim();
+
+    // 如果是隐藏的格式（已保存的），不要覆盖
+    if (apiKey.includes('...')) {
+        showToast('API Key 已保存', 'info');
+        return;
+    }
+
+    if (!apiKey) {
+        showToast('请输入 API Key', 'error');
+        return;
+    }
+
+    if (!apiKey.startsWith('sk-')) {
+        showToast('API Key 格式不正确', 'error');
+        return;
+    }
+
+    localStorage.setItem('fittracker_ai_api_key', apiKey);
+    updateAiConfigStatus(apiKey);
+
+    // 隐藏显示
+    apiKeyInput.value = apiKey.substring(0, 12) + '...' + apiKey.slice(-4);
+
+    showToast('API Key 保存成功', 'success');
+}
+
+function showApiTutorial() {
+    document.getElementById('apiTutorialModal').classList.add('show');
+}
+
+function closeApiTutorial() {
+    document.getElementById('apiTutorialModal').classList.remove('show');
+}
+
+function handleAiInputKeypress(event) {
+    if (event.key === 'Enter') {
+        sendAiMessage();
+    }
+}
+
+function sendQuickMessage(message) {
+    document.getElementById('aiChatInput').value = message;
+    sendAiMessage();
+}
+
+function clearAiChat() {
+    if (confirm('确定要清空对话记录吗？')) {
+        aiChatHistory = [];
+        localStorage.removeItem('fittracker_ai_chat_history');
+
+        const container = document.getElementById('aiChatMessages');
+        container.innerHTML = `
+            <div class="ai-message assistant">
+                <div class="ai-message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="ai-message-content">
+                    你好！我是你的 AI 健康助手。我可以帮你：<br><br>
+                    • 分析你的饮食和运动数据<br>
+                    • 提供个性化的健康建议<br>
+                    • 制定减脂/增肌计划<br>
+                    • 回答健康相关问题<br><br>
+                    请先配置 API Key，然后就可以开始对话了！
+                </div>
+            </div>
+        `;
+        showToast('对话已清空', 'success');
+    }
+}
+
+function loadAiChatHistory() {
+    const saved = localStorage.getItem('fittracker_ai_chat_history');
+    if (saved) {
+        try {
+            aiChatHistory = JSON.parse(saved);
+            renderAiChatHistory();
+        } catch (e) {
+            aiChatHistory = [];
+        }
+    }
+}
+
+function renderAiChatHistory() {
+    if (aiChatHistory.length === 0) return;
+
+    const container = document.getElementById('aiChatMessages');
+
+    aiChatHistory.forEach(msg => {
+        appendAiMessage(msg.role, msg.content, false);
+    });
+
+    scrollToBottom();
+}
+
+function appendAiMessage(role, content, save = true) {
+    const container = document.getElementById('aiChatMessages');
+    const isUser = role === 'user';
+
+    const messageHtml = `
+        <div class="ai-message ${isUser ? 'user' : 'assistant'}">
+            <div class="ai-message-avatar">
+                <i class="fas fa-${isUser ? 'user' : 'robot'}"></i>
+            </div>
+            <div class="ai-message-content">${formatAiContent(content)}</div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', messageHtml);
+
+    if (save) {
+        aiChatHistory.push({ role, content });
+        localStorage.setItem('fittracker_ai_chat_history', JSON.stringify(aiChatHistory));
+    }
+
+    scrollToBottom();
+}
+
+function formatAiContent(content) {
+    // 简单的 markdown 格式化
+    return content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>')
+        .replace(/• /g, '• ');
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('aiChatMessages');
+    container.scrollTop = container.scrollHeight;
+}
+
+function showTypingIndicator() {
+    const container = document.getElementById('aiChatMessages');
+    const typingHtml = `
+        <div class="ai-message assistant" id="typingIndicator">
+            <div class="ai-message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="ai-message-content">
+                <div class="ai-typing">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', typingHtml);
+    scrollToBottom();
+}
+
+function removeTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+function getUserDataContext() {
+    const today = new Date().toISOString().split('T')[0];
+    const settings = Storage.getSettings();
+    const foodSummary = Storage.getDailySummary(today);
+    const workoutSummary = Storage.getDailyWorkoutSummary(today);
+    const studySummary = Storage.getDailyStudySummary(today);
+    const latestWeight = Storage.getLatestWeight();
+    const weightChange = Storage.getWeightChange(7);
+
+    // 获取最近7天的数据
+    const recentFoods = [];
+    const recentWorkouts = [];
+    for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+
+        const dailyFood = Storage.getDailySummary(dateStr);
+        const dailyWorkout = Storage.getDailyWorkoutSummary(dateStr);
+
+        if (dailyFood.calories > 0) {
+            recentFoods.push({ date: dateStr, ...dailyFood });
+        }
+        if (dailyWorkout.calories > 0) {
+            recentWorkouts.push({ date: dateStr, ...dailyWorkout });
+        }
+    }
+
+    return `
+用户健康数据：
+- 昵称：${settings.nickname || '用户'}
+- 性别：${settings.gender === 'male' ? '男' : settings.gender === 'female' ? '女' : '未设置'}
+- 身高：${settings.height || '未设置'} cm
+- 当前体重：${latestWeight ? (latestWeight.morningWeight || latestWeight.eveningWeight) : (settings.currentWeight || '未设置')} kg
+- 目标体重：${settings.targetWeight || '未设置'} kg
+- 近7天体重变化：${weightChange ? weightChange.change + ' kg' : '数据不足'}
+
+今日数据 (${today})：
+- 摄入热量：${Math.round(foodSummary.calories)} kcal (目标：${settings.calorieGoal} kcal)
+- 碳水化合物：${Math.round(foodSummary.carbs)}g
+- 蛋白质：${Math.round(foodSummary.protein)}g
+- 脂肪：${Math.round(foodSummary.fat)}g
+- 运动消耗：${Math.round(workoutSummary.calories)} kcal
+- 运动时长：${workoutSummary.duration} 分钟
+- 学习时长：${studySummary.duration} 分钟
+
+最近7天饮食记录：
+${recentFoods.length > 0 ? recentFoods.map(f => `${f.date}: ${Math.round(f.calories)} kcal`).join('\n') : '暂无数据'}
+
+最近7天运动记录：
+${recentWorkouts.length > 0 ? recentWorkouts.map(w => `${w.date}: ${Math.round(w.calories)} kcal消耗, ${w.duration}分钟`).join('\n') : '暂无数据'}
+`;
+}
+
+async function sendAiMessage() {
+    const input = document.getElementById('aiChatInput');
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    const apiKey = localStorage.getItem('fittracker_ai_api_key');
+    if (!apiKey) {
+        showToast('请先配置 API Key', 'error');
+        return;
+    }
+
+    // 清空输入
+    input.value = '';
+
+    // 显示用户消息
+    appendAiMessage('user', message);
+
+    // 显示输入指示器
+    showTypingIndicator();
+
+    // 禁用发送按钮
+    const sendBtn = document.getElementById('aiSendBtn');
+    sendBtn.disabled = true;
+
+    try {
+        // 构建消息
+        const userDataContext = getUserDataContext();
+        const systemPrompt = `你是一个专业的健康助手，名叫 FitTracker AI。你基于用户的健康数据提供个性化的饮食、运动和健康建议。
+
+请注意：
+1. 回答要简洁、实用、易于理解
+2. 根据用户的实际数据给出具体建议
+3. 鼓励健康的生活方式
+4. 如果用户的某些数据缺失，可以建议他们去记录
+5. 使用中文回答
+6. 适当使用表情符号使回答更友好
+
+用户当前的健康数据如下：
+${userDataContext}`;
+
+        // 构建对话历史（只取最近5轮对话）
+        const recentHistory = aiChatHistory.slice(-10);
+        const messages = recentHistory.map(msg => ({
+            role: msg.role,
+            content: msg.content
+        }));
+
+        // 添加当前消息
+        messages.push({ role: 'user', content: message });
+
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 1024,
+                system: systemPrompt,
+                messages: messages
+            })
+        });
+
+        removeTypingIndicator();
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error?.message || `API 请求失败: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.content[0].text;
+
+        appendAiMessage('assistant', aiResponse);
+
+    } catch (error) {
+        removeTypingIndicator();
+        console.error('AI API Error:', error);
+
+        let errorMessage = '抱歉，发生了错误。';
+        if (error.message.includes('401') || error.message.includes('invalid_api_key')) {
+            errorMessage = 'API Key 无效，请检查配置。';
+        } else if (error.message.includes('429')) {
+            errorMessage = '请求过于频繁，请稍后再试。';
+        } else if (error.message.includes('500') || error.message.includes('503')) {
+            errorMessage = 'AI 服务暂时不可用，请稍后再试。';
+        } else if (error.message.includes('network') || error.message.includes('Failed to fetch')) {
+            errorMessage = '网络连接失败，请检查网络。';
+        } else {
+            errorMessage = `错误：${error.message}`;
+        }
+
+        appendAiMessage('assistant', errorMessage);
+    } finally {
+        sendBtn.disabled = false;
+    }
 }

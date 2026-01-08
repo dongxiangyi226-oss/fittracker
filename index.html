@@ -68,6 +68,10 @@
                     <i class="fas fa-weight"></i>
                     <span>体重记录</span>
                 </a>
+                <a href="#ai" class="nav-item" data-page="ai">
+                    <i class="fas fa-robot"></i>
+                    <span>AI 助手</span>
+                </a>
                 <a href="#settings" class="nav-item" data-page="settings">
                     <i class="fas fa-cog"></i>
                     <span>设置</span>
@@ -595,6 +599,150 @@
                             <div class="empty-state">
                                 <i class="fas fa-weight"></i>
                                 <p>暂无体重记录</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AI助手页面 -->
+                <section class="page" id="page-ai">
+                    <div class="ai-analysis-page">
+                        <!-- AI Hero区域 -->
+                        <div class="ai-hero">
+                            <div class="ai-hero-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <h2>AI 健康助手</h2>
+                            <p>基于 Claude AI 的智能健康分析与建议</p>
+                        </div>
+
+                        <!-- API配置卡片 -->
+                        <div class="ai-config-card" id="aiConfigCard">
+                            <div class="ai-config-header">
+                                <div class="ai-config-icon">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <div>
+                                    <h3>API 配置</h3>
+                                    <span class="ai-config-status not-configured" id="aiConfigStatus">
+                                        <i class="fas fa-exclamation-circle"></i> 未配置
+                                    </span>
+                                </div>
+                            </div>
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">
+                                请输入您的 Anthropic API Key 以启用 AI 分析功能。
+                                <a href="#" onclick="showApiTutorial()" style="color: var(--primary-color);">查看获取教程</a>
+                            </p>
+                            <div class="ai-api-input">
+                                <input type="password" id="aiApiKey" placeholder="sk-ant-api03-..." />
+                                <button class="btn btn-primary" onclick="saveApiKey()">
+                                    <i class="fas fa-save"></i> 保存
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- AI对话区域 -->
+                        <div class="ai-chat-container">
+                            <div class="ai-chat-header">
+                                <h3><i class="fas fa-comments"></i> 智能对话</h3>
+                                <button class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: #fff;" onclick="clearAiChat()">
+                                    <i class="fas fa-trash"></i> 清空
+                                </button>
+                            </div>
+                            <div class="ai-chat-messages" id="aiChatMessages">
+                                <div class="ai-message assistant">
+                                    <div class="ai-message-avatar">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <div class="ai-message-content">
+                                        你好！我是你的 AI 健康助手。我可以帮你：<br><br>
+                                        • 分析你的饮食和运动数据<br>
+                                        • 提供个性化的健康建议<br>
+                                        • 制定减脂/增肌计划<br>
+                                        • 回答健康相关问题<br><br>
+                                        请先配置 API Key，然后就可以开始对话了！
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ai-quick-actions">
+                                <button class="ai-quick-btn" onclick="sendQuickMessage('分析我今天的饮食数据')">
+                                    <i class="fas fa-utensils"></i> 分析今日饮食
+                                </button>
+                                <button class="ai-quick-btn" onclick="sendQuickMessage('根据我的数据给出减脂建议')">
+                                    <i class="fas fa-fire"></i> 减脂建议
+                                </button>
+                                <button class="ai-quick-btn" onclick="sendQuickMessage('分析我的体重变化趋势')">
+                                    <i class="fas fa-weight"></i> 体重趋势
+                                </button>
+                                <button class="ai-quick-btn" onclick="sendQuickMessage('帮我制定一周运动计划')">
+                                    <i class="fas fa-calendar"></i> 运动计划
+                                </button>
+                            </div>
+                            <div class="ai-chat-input">
+                                <input type="text" id="aiChatInput" placeholder="输入你的问题..." onkeypress="handleAiInputKeypress(event)" />
+                                <button onclick="sendAiMessage()" id="aiSendBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- API教程模态框 -->
+                        <div class="modal" id="apiTutorialModal">
+                            <div class="modal-overlay" onclick="closeApiTutorial()"></div>
+                            <div class="modal-content modal-lg">
+                                <div class="modal-header">
+                                    <h3><i class="fas fa-graduation-cap"></i> 如何获取 Anthropic API Key</h3>
+                                    <button class="modal-close" onclick="closeApiTutorial()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="modal-body" style="line-height: 1.8;">
+                                    <div class="ai-insight-card">
+                                        <h4><i class="fas fa-info-circle"></i> 什么是 API Key？</h4>
+                                        <p>API Key 是访问 Claude AI 服务的密钥。您需要在 Anthropic 官网注册并获取。</p>
+                                    </div>
+
+                                    <h4 style="margin: 20px 0 12px; color: var(--text-color);">获取步骤：</h4>
+
+                                    <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;">
+                                        <strong>1. 访问 Anthropic Console</strong><br>
+                                        打开 <a href="https://console.anthropic.com" target="_blank" style="color: var(--primary-color);">https://console.anthropic.com</a>
+                                    </div>
+
+                                    <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;">
+                                        <strong>2. 注册/登录账户</strong><br>
+                                        如果没有账户，点击 "Sign Up" 注册。支持邮箱和 Google 账户登录。
+                                    </div>
+
+                                    <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;">
+                                        <strong>3. 进入 API Keys 页面</strong><br>
+                                        登录后，点击左侧菜单的 "API Keys" 选项。
+                                    </div>
+
+                                    <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;">
+                                        <strong>4. 创建新的 API Key</strong><br>
+                                        点击 "Create Key" 按钮，输入名称（如 "FitTracker"），然后点击创建。
+                                    </div>
+
+                                    <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;">
+                                        <strong>5. 复制 API Key</strong><br>
+                                        创建成功后会显示 API Key（以 sk-ant-api03- 开头）。<br>
+                                        <span style="color: var(--danger-color);">⚠️ 注意：API Key 只会显示一次，请立即复制保存！</span>
+                                    </div>
+
+                                    <div style="background: var(--bg-color); padding: 16px; border-radius: var(--radius-md); margin-bottom: 12px;">
+                                        <strong>6. 添加余额（可选）</strong><br>
+                                        Anthropic 提供 $5 免费额度。如需更多使用量，可在 Billing 页面充值。
+                                    </div>
+
+                                    <div class="ai-insight-card" style="margin-top: 20px;">
+                                        <h4><i class="fas fa-shield-alt"></i> 安全提示</h4>
+                                        <p>您的 API Key 仅保存在本地浏览器中，不会上传到任何服务器。请勿将 API Key 分享给他人。</p>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-primary" onclick="closeApiTutorial()">我知道了</button>
+                                </div>
                             </div>
                         </div>
                     </div>
