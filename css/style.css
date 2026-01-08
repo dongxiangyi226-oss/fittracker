@@ -518,6 +518,11 @@ body {
     grid-column: span 1;
 }
 
+/* 今日体重 */
+.today-weight {
+    grid-column: span 1;
+}
+
 .study-stats-mini {
     display: flex;
     gap: 16px;
@@ -2027,4 +2032,117 @@ body {
         width: 100%;
         justify-content: flex-end;
     }
+}
+
+/* 仪表盘体重卡片 */
+.weight-dashboard-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.weight-today-display {
+    display: flex;
+    gap: 16px;
+}
+
+.weight-today-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-color);
+    border-radius: var(--radius-md);
+}
+
+.weight-today-item i {
+    font-size: 20px;
+    color: var(--primary-color);
+}
+
+.weight-today-item i.fa-sun {
+    color: #f59e0b;
+}
+
+.weight-today-item i.fa-moon {
+    color: #6366f1;
+}
+
+.weight-today-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.weight-today-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.weight-today-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.weight-today-unit {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.weight-goal-progress {
+    padding: 12px;
+    background: var(--bg-color);
+    border-radius: var(--radius-md);
+}
+
+.weight-goal-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.weight-gap {
+    font-weight: 600;
+}
+
+.weight-gap.positive {
+    color: var(--danger-color);
+}
+
+.weight-gap.negative {
+    color: var(--success-color);
+}
+
+.weight-progress-bar {
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.weight-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), #48bb78);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.weight-change-info {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+.weight-change-info .positive {
+    color: var(--danger-color);
+}
+
+.weight-change-info .negative {
+    color: var(--success-color);
 }

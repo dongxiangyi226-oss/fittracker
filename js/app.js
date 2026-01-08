@@ -180,6 +180,9 @@ function loadDashboard() {
     // 加载今日学习列表
     loadTodayStudies(today);
 
+    // 加载今日体重
+    loadTodayWeight();
+
     // 渲染宏量营养素饼图
     renderMacroChart(foodSummary);
 }
@@ -1967,6 +1970,75 @@ function deleteWeightRecord(date) {
         loadWeightStats();
         loadWeightHistory();
         renderWeightTrendChart();
+    }
+}
+
+// 仪表盘体重显示
+function loadTodayWeight() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayWeight = Storage.getWeightByDate(today);
+    const settings = Storage.getSettings();
+    const weightChange = Storage.getWeightChange(7);
+    const latestWeight = Storage.getLatestWeight();
+
+    // 今日早间体重
+    if (todayWeight && todayWeight.morningWeight) {
+        document.getElementById('dashboardMorningWeight').textContent = todayWeight.morningWeight.toFixed(1);
+    } else {
+        document.getElementById('dashboardMorningWeight').textContent = '--';
+    }
+
+    // 今日晚间体重
+    if (todayWeight && todayWeight.eveningWeight) {
+        document.getElementById('dashboardEveningWeight').textContent = todayWeight.eveningWeight.toFixed(1);
+    } else {
+        document.getElementById('dashboardEveningWeight').textContent = '--';
+    }
+
+    // 目标体重
+    if (settings.targetWeight) {
+        document.getElementById('dashboardTargetWeight').textContent = settings.targetWeight;
+    } else {
+        document.getElementById('dashboardTargetWeight').textContent = '--';
+    }
+
+    // 计算距离目标
+    const currentWeight = latestWeight ?
+        (latestWeight.morningWeight || latestWeight.eveningWeight) :
+        settings.currentWeight;
+
+    if (currentWeight && settings.targetWeight) {
+        const gap = (currentWeight - settings.targetWeight).toFixed(1);
+        const gapElement = document.getElementById('dashboardWeightGap');
+        gapElement.textContent = gap > 0 ? `还需减 ${gap} kg` : (gap < 0 ? `已超标 ${Math.abs(gap)} kg` : '已达标!');
+        gapElement.className = 'weight-gap ' + (gap > 0 ? 'positive' : 'negative');
+
+        // 计算进度条 (假设从初始体重减到目标体重)
+        const initialWeight = settings.currentWeight || currentWeight;
+        const totalToLose = initialWeight - settings.targetWeight;
+        const lostSoFar = initialWeight - currentWeight;
+        let progressPercent = 0;
+        if (totalToLose > 0) {
+            progressPercent = Math.min(100, Math.max(0, (lostSoFar / totalToLose) * 100));
+        } else if (totalToLose < 0) {
+            // 需要增重的情况
+            progressPercent = Math.min(100, Math.max(0, (Math.abs(lostSoFar) / Math.abs(totalToLose)) * 100));
+        }
+        document.getElementById('dashboardWeightProgress').style.width = progressPercent + '%';
+    } else {
+        document.getElementById('dashboardWeightGap').textContent = '请设置目标';
+        document.getElementById('dashboardWeightGap').className = 'weight-gap';
+        document.getElementById('dashboardWeightProgress').style.width = '0%';
+    }
+
+    // 近7天变化
+    if (weightChange) {
+        const change = parseFloat(weightChange.change);
+        const changeElement = document.getElementById('dashboardWeeklyChange');
+        const changeText = change > 0 ? `+${change} kg` : `${change} kg`;
+        changeElement.innerHTML = `<span class="${change > 0 ? 'positive' : 'negative'}">${changeText}</span>`;
+    } else {
+        document.getElementById('dashboardWeeklyChange').textContent = '--';
     }
 }
 

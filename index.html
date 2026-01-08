@@ -251,6 +251,48 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 今日体重 -->
+                        <div class="card today-weight">
+                            <div class="card-header">
+                                <h3 class="card-title">今日体重</h3>
+                                <button class="btn btn-primary btn-sm" onclick="navigateTo('weight')">
+                                    <i class="fas fa-edit"></i> 记录
+                                </button>
+                            </div>
+                            <div class="weight-dashboard-content">
+                                <div class="weight-today-display">
+                                    <div class="weight-today-item">
+                                        <i class="fas fa-sun"></i>
+                                        <div class="weight-today-info">
+                                            <span class="weight-today-label">早间</span>
+                                            <span class="weight-today-value" id="dashboardMorningWeight">--</span>
+                                            <span class="weight-today-unit">kg</span>
+                                        </div>
+                                    </div>
+                                    <div class="weight-today-item">
+                                        <i class="fas fa-moon"></i>
+                                        <div class="weight-today-info">
+                                            <span class="weight-today-label">晚间</span>
+                                            <span class="weight-today-value" id="dashboardEveningWeight">--</span>
+                                            <span class="weight-today-unit">kg</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="weight-goal-progress">
+                                    <div class="weight-goal-info">
+                                        <span>目标: <strong id="dashboardTargetWeight">--</strong> kg</span>
+                                        <span class="weight-gap" id="dashboardWeightGap">--</span>
+                                    </div>
+                                    <div class="weight-progress-bar">
+                                        <div class="weight-progress-fill" id="dashboardWeightProgress"></div>
+                                    </div>
+                                    <div class="weight-change-info">
+                                        <span>近7天: <span id="dashboardWeeklyChange">--</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
