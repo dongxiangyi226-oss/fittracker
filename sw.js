@@ -19,7 +19,8 @@ const STATIC_ASSETS = [
 // 需要缓存的外部资源
 const EXTERNAL_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js'
+  'https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
 
 // 安装事件 - 缓存静态资源

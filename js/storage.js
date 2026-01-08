@@ -9,6 +9,7 @@ const Storage = {
         FOODS: 'fittracker_foods',
         WORKOUTS: 'fittracker_workouts',
         NOTES: 'fittracker_notes',
+        STUDIES: 'fittracker_studies',
         SETTINGS: 'fittracker_settings',
         FOOD_DATABASE: 'fittracker_food_database'
     },
@@ -225,6 +226,83 @@ const Storage = {
         );
     },
 
+    // ==================== 学习记录 ====================
+    // 获取所有学习记录
+    getAllStudies() {
+        return this.getData(this.KEYS.STUDIES);
+    },
+
+    // 根据日期获取学习记录
+    getStudiesByDate(date) {
+        const studies = this.getAllStudies();
+        return studies.filter(study => study.date === date);
+    },
+
+    // 根据日期和分类获取学习记录
+    getStudiesByDateAndCategory(date, category) {
+        const studies = this.getStudiesByDate(date);
+        if (category === 'all') return studies;
+        return studies.filter(study => study.category === category);
+    },
+
+    // 根据ID获取学习记录
+    getStudyById(id) {
+        const studies = this.getAllStudies();
+        return studies.find(study => study.id === id);
+    },
+
+    // 添加学习记录
+    addStudy(study) {
+        const studies = this.getAllStudies();
+        const newStudy = {
+            id: this.generateId(),
+            ...study,
+            createdAt: new Date().toISOString()
+        };
+        studies.push(newStudy);
+        this.setData(this.KEYS.STUDIES, studies);
+        return newStudy;
+    },
+
+    // 更新学习记录
+    updateStudy(id, updates) {
+        const studies = this.getAllStudies();
+        const index = studies.findIndex(study => study.id === id);
+        if (index !== -1) {
+            studies[index] = { ...studies[index], ...updates, updatedAt: new Date().toISOString() };
+            this.setData(this.KEYS.STUDIES, studies);
+            return studies[index];
+        }
+        return null;
+    },
+
+    // 删除学习记录
+    deleteStudy(id) {
+        const studies = this.getAllStudies();
+        const filteredStudies = studies.filter(study => study.id !== id);
+        this.setData(this.KEYS.STUDIES, filteredStudies);
+    },
+
+    // 计算某日学习汇总
+    getDailyStudySummary(date) {
+        const studies = this.getStudiesByDate(date);
+        const completedTasks = studies.reduce((sum, study) => {
+            return sum + (study.tasks ? study.tasks.length : 0);
+        }, 0);
+
+        return {
+            duration: studies.reduce((sum, study) => sum + (parseInt(study.duration) || 0), 0),
+            items: studies.length,
+            completedTasks: completedTasks
+        };
+    },
+
+    // 获取日期范围内的学习记录
+    getStudiesByDateRange(startDate, endDate) {
+        const studies = this.getAllStudies();
+        return studies.filter(study => study.date >= startDate && study.date <= endDate);
+    },
+
     // ==================== 设置 ====================
     // 获取设置
     getSettings() {
@@ -438,6 +516,7 @@ const Storage = {
             foods: this.getAllFoods(),
             workouts: this.getAllWorkouts(),
             notes: this.getAllNotes(),
+            studies: this.getAllStudies(),
             settings: this.getSettings(),
             foodDatabase: this.getFoodDatabase(),
             exportedAt: new Date().toISOString()
@@ -450,6 +529,7 @@ const Storage = {
             if (data.foods) this.setData(this.KEYS.FOODS, data.foods);
             if (data.workouts) this.setData(this.KEYS.WORKOUTS, data.workouts);
             if (data.notes) this.setData(this.KEYS.NOTES, data.notes);
+            if (data.studies) this.setData(this.KEYS.STUDIES, data.studies);
             if (data.settings) this.saveSettings(data.settings);
             if (data.foodDatabase) this.setData(this.KEYS.FOOD_DATABASE, data.foodDatabase);
             return true;
@@ -464,6 +544,7 @@ const Storage = {
         localStorage.removeItem(this.KEYS.FOODS);
         localStorage.removeItem(this.KEYS.WORKOUTS);
         localStorage.removeItem(this.KEYS.NOTES);
+        localStorage.removeItem(this.KEYS.STUDIES);
         localStorage.removeItem(this.KEYS.SETTINGS);
         localStorage.removeItem(this.KEYS.FOOD_DATABASE);
     }

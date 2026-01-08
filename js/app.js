@@ -6,8 +6,11 @@
 let currentPage = 'dashboard';
 let currentFoodDate = new Date().toISOString().split('T')[0];
 let currentWorkoutDate = new Date().toISOString().split('T')[0];
+let currentStudyDate = new Date().toISOString().split('T')[0];
 let currentMealFilter = 'all';
+let currentStudyFilter = 'all';
 let currentPeriod = 'week';
+let studyTasks = []; // 临时存储学习任务
 
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', function() {
@@ -21,6 +24,7 @@ function initApp() {
     // 初始化日期选择器
     document.getElementById('foodDatePicker').value = currentFoodDate;
     document.getElementById('workoutDatePicker').value = currentWorkoutDate;
+    document.getElementById('studyDatePicker').value = currentStudyDate;
 
     // 初始化导航
     initNavigation();
@@ -89,6 +93,7 @@ function navigateTo(page) {
         workout: '运动记录',
         analytics: '数据分析',
         notes: '笔记',
+        study: '学习记录',
         settings: '设置'
     };
     document.getElementById('pageTitle').textContent = titles[page] || '';
@@ -112,6 +117,9 @@ function navigateTo(page) {
             break;
         case 'notes':
             loadNotes();
+            break;
+        case 'study':
+            loadStudyRecords();
             break;
         case 'settings':
             loadSettings();
@@ -848,6 +856,27 @@ function initFormEvents() {
         });
     });
 
+    // 学习分类Tab切换
+    document.querySelectorAll('.study-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.study-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            currentStudyFilter = this.dataset.category;
+            loadStudyRecords();
+        });
+    });
+
+    // 学习任务输入回车事件
+    const studyTaskInput = document.getElementById('studyTaskInput');
+    if (studyTaskInput) {
+        studyTaskInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addStudyTask();
+            }
+        });
+    }
+
     // 食物名称自动补全
     const foodNameInput = document.getElementById('foodName');
     const suggestionsContainer = document.getElementById('foodSuggestions');
@@ -1002,6 +1031,379 @@ function handleWorkoutFile(file) {
     closeUploadModal();
     loadWorkoutRecords();
     showToast('运动记录已导入（演示数据）', 'success');
+}
+
+// ==================== 学习记录页面 ====================
+function loadStudyRecords() {
+    const studies = Storage.getStudiesByDateAndCategory(currentStudyDate, currentStudyFilter);
+    const summary = Storage.getDailyStudySummary(currentStudyDate);
+
+    // 更新汇总
+    document.getElementById('studyTotalDuration').textContent = summary.duration;
+    document.getElementById('studyTotalItems').textContent = summary.items;
+    document.getElementById('studyCompletedTasks').textContent = summary.completedTasks;
+
+    // 渲染学习记录列表
+    const container = document.getElementById('studyList');
+
+    if (studies.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-graduation-cap"></i>
+                <p>今天还没有学习记录</p>
+            </div>
+        `;
+        return;
+    }
+
+    const categoryLabels = {
+        reading: '阅读',
+        coding: '编程',
+        course: '课程',
+        practice: '练习',
+        other: '其他'
+    };
+
+    const categoryIcons = {
+        reading: 'fa-book-reader',
+        coding: 'fa-code',
+        course: 'fa-chalkboard-teacher',
+        practice: 'fa-pencil-alt',
+        other: 'fa-folder'
+    };
+
+    let html = '';
+    studies.forEach(study => {
+        const tasksHtml = study.tasks && study.tasks.length > 0
+            ? study.tasks.map(task => `
+                <span class="study-task-item">
+                    <i class="fas fa-check"></i>
+                    ${task}
+                </span>
+            `).join('')
+            : '';
+
+        html += `
+            <div class="study-card">
+                <div class="study-card-header">
+                    <div class="study-card-title">
+                        <div class="study-category-icon ${study.category}">
+                            <i class="fas ${categoryIcons[study.category] || 'fa-folder'}"></i>
+                        </div>
+                        <div class="study-title-info">
+                            <h4>${study.topic}</h4>
+                            <div class="study-meta">
+                                <span><i class="fas fa-tag"></i> ${categoryLabels[study.category] || study.category}</span>
+                                <span><i class="fas fa-clock"></i> ${study.duration} 分钟</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="study-content-section">
+                    <h5><i class="fas fa-file-alt"></i> 学习内容</h5>
+                    <div class="study-content-text">${study.content}</div>
+                </div>
+
+                ${study.reflection ? `
+                <div class="study-content-section">
+                    <h5><i class="fas fa-lightbulb"></i> 学习心得</h5>
+                    <div class="study-content-text">${study.reflection}</div>
+                </div>
+                ` : ''}
+
+                ${tasksHtml ? `
+                <div class="study-content-section">
+                    <h5><i class="fas fa-tasks"></i> 完成的任务</h5>
+                    <div class="study-tasks">${tasksHtml}</div>
+                </div>
+                ` : ''}
+
+                ${study.resources ? `
+                <div class="study-content-section">
+                    <h5><i class="fas fa-link"></i> 参考资源</h5>
+                    <div class="study-resources">${study.resources}</div>
+                </div>
+                ` : ''}
+
+                <div class="study-card-actions">
+                    <button class="btn btn-icon" onclick="editStudy('${study.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-icon" onclick="deleteStudy('${study.id}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function changeStudyDate(delta) {
+    const date = new Date(currentStudyDate);
+    date.setDate(date.getDate() + delta);
+    currentStudyDate = date.toISOString().split('T')[0];
+    document.getElementById('studyDatePicker').value = currentStudyDate;
+    loadStudyRecords();
+}
+
+// 学习记录模态框
+function openStudyModal(id = null) {
+    const modal = document.getElementById('studyModal');
+    const form = document.getElementById('studyForm');
+
+    form.reset();
+    document.getElementById('studyId').value = '';
+    document.getElementById('studyModalTitle').textContent = '添加学习记录';
+    studyTasks = [];
+    renderStudyTasks();
+
+    if (id) {
+        const study = Storage.getStudyById(id);
+        if (study) {
+            document.getElementById('studyId').value = study.id;
+            document.getElementById('studyModalTitle').textContent = '编辑学习记录';
+            document.getElementById('studyCategory').value = study.category;
+            document.getElementById('studyDuration').value = study.duration;
+            document.getElementById('studyTopic').value = study.topic;
+            document.getElementById('studyContent').value = study.content;
+            document.getElementById('studyReflection').value = study.reflection || '';
+            document.getElementById('studyResources').value = study.resources || '';
+            studyTasks = study.tasks || [];
+            renderStudyTasks();
+        }
+    }
+
+    modal.classList.add('show');
+}
+
+function closeStudyModal() {
+    document.getElementById('studyModal').classList.remove('show');
+    studyTasks = [];
+}
+
+function addStudyTask() {
+    const input = document.getElementById('studyTaskInput');
+    const task = input.value.trim();
+
+    if (task) {
+        studyTasks.push(task);
+        renderStudyTasks();
+        input.value = '';
+    }
+}
+
+function removeStudyTask(index) {
+    studyTasks.splice(index, 1);
+    renderStudyTasks();
+}
+
+function renderStudyTasks() {
+    const container = document.getElementById('studyTaskList');
+    if (studyTasks.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = studyTasks.map((task, index) => `
+        <span class="task-tag">
+            ${task}
+            <i class="fas fa-times remove-task" onclick="removeStudyTask(${index})"></i>
+        </span>
+    `).join('');
+}
+
+function saveStudy() {
+    const id = document.getElementById('studyId').value;
+    const study = {
+        date: currentStudyDate,
+        category: document.getElementById('studyCategory').value,
+        duration: parseInt(document.getElementById('studyDuration').value) || 0,
+        topic: document.getElementById('studyTopic').value.trim(),
+        content: document.getElementById('studyContent').value.trim(),
+        reflection: document.getElementById('studyReflection').value.trim(),
+        resources: document.getElementById('studyResources').value.trim(),
+        tasks: [...studyTasks]
+    };
+
+    if (!study.topic || !study.content || !study.duration) {
+        showToast('请填写必填项', 'error');
+        return;
+    }
+
+    if (id) {
+        Storage.updateStudy(id, study);
+        showToast('学习记录已更新', 'success');
+    } else {
+        Storage.addStudy(study);
+        showToast('学习记录已添加', 'success');
+    }
+
+    closeStudyModal();
+    loadStudyRecords();
+}
+
+function editStudy(id) {
+    openStudyModal(id);
+}
+
+function deleteStudy(id) {
+    if (confirm('确定要删除这条学习记录吗？')) {
+        Storage.deleteStudy(id);
+        showToast('记录已删除', 'success');
+        loadStudyRecords();
+    }
+}
+
+// ==================== PDF 导出功能 ====================
+function exportDailyPDF() {
+    const date = currentStudyDate;
+    const studies = Storage.getStudiesByDate(date);
+    const foodSummary = Storage.getDailySummary(date);
+    const workoutSummary = Storage.getDailyWorkoutSummary(date);
+    const studySummary = Storage.getDailyStudySummary(date);
+
+    if (studies.length === 0) {
+        showToast('当天没有学习记录可导出', 'error');
+        return;
+    }
+
+    const categoryLabels = {
+        reading: '阅读',
+        coding: '编程',
+        course: '课程',
+        practice: '练习',
+        other: '其他'
+    };
+
+    const dateStr = new Date(date).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+    });
+
+    // 创建PDF内容
+    let studyItemsHtml = '';
+    studies.forEach((study, index) => {
+        const tasksHtml = study.tasks && study.tasks.length > 0
+            ? `<div class="pdf-tasks-list">${study.tasks.map(t => `<span class="pdf-task"><i class="fas fa-check"></i> ${t}</span>`).join('')}</div>`
+            : '';
+
+        studyItemsHtml += `
+            <div class="pdf-study-item">
+                <span class="category">${categoryLabels[study.category] || study.category}</span>
+                <h3>${index + 1}. ${study.topic}</h3>
+                <p style="color: #666; font-size: 13px; margin-bottom: 8px;">
+                    <i class="fas fa-clock"></i> ${study.duration} 分钟
+                </p>
+                <div class="content">${study.content}</div>
+                ${study.reflection ? `<div class="reflection">${study.reflection}</div>` : ''}
+                ${tasksHtml}
+                ${study.resources ? `<p style="font-size: 12px; color: #888; margin-top: 8px;"><strong>参考资源：</strong>${study.resources}</p>` : ''}
+            </div>
+        `;
+    });
+
+    const pdfContent = `
+        <div class="pdf-export-container" id="pdfContent">
+            <div class="pdf-header">
+                <h1><i class="fas fa-graduation-cap"></i> 每日学习记录</h1>
+                <div class="pdf-date">${dateStr}</div>
+            </div>
+
+            <div class="pdf-section">
+                <h2><i class="fas fa-chart-pie"></i> 今日概览</h2>
+                <div class="pdf-summary-grid">
+                    <div class="pdf-summary-item">
+                        <div class="value">${studySummary.duration}</div>
+                        <div class="label">学习时长(分钟)</div>
+                    </div>
+                    <div class="pdf-summary-item">
+                        <div class="value">${studySummary.items}</div>
+                        <div class="label">学习项目</div>
+                    </div>
+                    <div class="pdf-summary-item">
+                        <div class="value">${studySummary.completedTasks}</div>
+                        <div class="label">完成任务</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pdf-section">
+                <h2><i class="fas fa-book"></i> 学习详情</h2>
+                ${studyItemsHtml}
+            </div>
+
+            <div class="pdf-section">
+                <h2><i class="fas fa-heartbeat"></i> 健康数据</h2>
+                <div class="pdf-summary-grid">
+                    <div class="pdf-summary-item">
+                        <div class="value">${Math.round(foodSummary.calories)}</div>
+                        <div class="label">摄入热量(kcal)</div>
+                    </div>
+                    <div class="pdf-summary-item">
+                        <div class="value">${Math.round(workoutSummary.calories)}</div>
+                        <div class="label">运动消耗(kcal)</div>
+                    </div>
+                    <div class="pdf-summary-item">
+                        <div class="value">${workoutSummary.duration}</div>
+                        <div class="label">运动时长(分钟)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pdf-footer">
+                <p>由 FitTracker 生成 · ${new Date().toLocaleString('zh-CN')}</p>
+            </div>
+        </div>
+    `;
+
+    // 创建临时元素
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = pdfContent;
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '0';
+    document.body.appendChild(tempDiv);
+
+    const element = tempDiv.querySelector('#pdfContent');
+    element.style.position = 'relative';
+    element.style.left = '0';
+    element.style.width = '210mm';
+    element.style.background = '#ffffff';
+    element.style.padding = '20mm';
+    element.style.fontFamily = '"Microsoft YaHei", "SimHei", sans-serif';
+
+    // 使用 html2pdf 导出
+    const opt = {
+        margin: 0,
+        filename: `学习记录_${date}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        }
+    };
+
+    showToast('正在生成 PDF...', 'info');
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        document.body.removeChild(tempDiv);
+        showToast('PDF 导出成功', 'success');
+    }).catch(err => {
+        document.body.removeChild(tempDiv);
+        showToast('PDF 导出失败', 'error');
+        console.error('PDF export error:', err);
+    });
 }
 
 // ==================== Toast 提示 ====================

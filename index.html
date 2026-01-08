@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -58,6 +59,10 @@
                 <a href="#notes" class="nav-item" data-page="notes">
                     <i class="fas fa-book"></i>
                     <span>笔记</span>
+                </a>
+                <a href="#study" class="nav-item" data-page="study">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>学习记录</span>
                 </a>
                 <a href="#settings" class="nav-item" data-page="settings">
                     <i class="fas fa-cog"></i>
@@ -374,6 +379,66 @@
                     </div>
                 </section>
 
+                <!-- 学习记录页面 -->
+                <section class="page" id="page-study">
+                    <div class="page-header">
+                        <div class="date-picker">
+                            <button class="btn btn-icon" onclick="changeStudyDate(-1)">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <input type="date" id="studyDatePicker" onchange="loadStudyRecords()">
+                            <button class="btn btn-icon" onclick="changeStudyDate(1)">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        <div class="header-actions">
+                            <button class="btn btn-secondary" onclick="exportDailyPDF()">
+                                <i class="fas fa-file-pdf"></i> 导出PDF
+                            </button>
+                            <button class="btn btn-primary" onclick="openStudyModal()">
+                                <i class="fas fa-plus"></i> 添加记录
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 学习汇总 -->
+                    <div class="study-summary card">
+                        <div class="summary-item">
+                            <span class="summary-label">学习时长</span>
+                            <span class="summary-value" id="studyTotalDuration">0</span>
+                            <span class="summary-unit">分钟</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">学习项目</span>
+                            <span class="summary-value" id="studyTotalItems">0</span>
+                            <span class="summary-unit">项</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">完成任务</span>
+                            <span class="summary-value" id="studyCompletedTasks">0</span>
+                            <span class="summary-unit">个</span>
+                        </div>
+                    </div>
+
+                    <!-- 学习分类Tab -->
+                    <div class="study-tabs">
+                        <button class="study-tab active" data-category="all">全部</button>
+                        <button class="study-tab" data-category="reading">阅读</button>
+                        <button class="study-tab" data-category="coding">编程</button>
+                        <button class="study-tab" data-category="course">课程</button>
+                        <button class="study-tab" data-category="practice">练习</button>
+                        <button class="study-tab" data-category="other">其他</button>
+                    </div>
+
+                    <!-- 学习记录列表 -->
+                    <div class="study-list" id="studyList">
+                        <div class="empty-state">
+                            <i class="fas fa-graduation-cap"></i>
+                            <p>今天还没有学习记录</p>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- 设置页面 -->
                 <section class="page" id="page-settings">
                     <div class="settings-container">
@@ -622,6 +687,70 @@
                 <div class="upload-info">
                     <p><i class="fas fa-info-circle"></i> 从 COROS 官网 (training.coros.com) 导出运动数据后上传</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加学习记录模态框 -->
+    <div class="modal" id="studyModal">
+        <div class="modal-overlay" onclick="closeStudyModal()"></div>
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="studyModalTitle">添加学习记录</h3>
+                <button class="modal-close" onclick="closeStudyModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="studyForm">
+                    <input type="hidden" id="studyId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>学习类别 *</label>
+                            <select id="studyCategory" required>
+                                <option value="reading">阅读</option>
+                                <option value="coding">编程</option>
+                                <option value="course">课程</option>
+                                <option value="practice">练习</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>学习时长 (分钟) *</label>
+                            <input type="number" id="studyDuration" required min="1" placeholder="60">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>学习主题 *</label>
+                        <input type="text" id="studyTopic" required placeholder="如：JavaScript基础、数据结构">
+                    </div>
+                    <div class="form-group">
+                        <label>学习内容 *</label>
+                        <textarea id="studyContent" required placeholder="详细描述今天学习的内容..." rows="5"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>学习心得</label>
+                        <textarea id="studyReflection" placeholder="记录学习过程中的思考和收获..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>完成的任务</label>
+                        <div class="task-input-wrapper">
+                            <input type="text" id="studyTaskInput" placeholder="输入任务后按回车添加">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="addStudyTask()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <div class="task-list" id="studyTaskList"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>参考资源</label>
+                        <textarea id="studyResources" placeholder="书籍、网站、视频链接等..." rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeStudyModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveStudy()">保存</button>
             </div>
         </div>
     </div>
