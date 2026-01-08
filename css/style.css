@@ -510,7 +510,88 @@ body {
 
 /* 今日运动 */
 .today-workout {
-    grid-column: span 2;
+    grid-column: span 1;
+}
+
+/* 今日学习 */
+.today-study {
+    grid-column: span 1;
+}
+
+.study-stats-mini {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--bg-color);
+    border-radius: var(--radius-md);
+}
+
+.study-stat-mini {
+    flex: 1;
+    text-align: center;
+}
+
+.study-stat-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.study-stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.study-list-mini {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.study-item-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: var(--bg-color);
+    margin-bottom: 8px;
+}
+
+.study-item-mini:last-child {
+    margin-bottom: 0;
+}
+
+.study-item-mini .study-category-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.study-item-mini .study-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.study-item-mini .study-item-info h4 {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.study-item-mini .study-item-info span {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.study-item-mini .study-duration {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-color);
+    white-space: nowrap;
 }
 
 .workout-list {

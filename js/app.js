@@ -171,6 +171,9 @@ function loadDashboard() {
     // 加载今日运动列表
     loadTodayWorkouts(today);
 
+    // 加载今日学习列表
+    loadTodayStudies(today);
+
     // 渲染宏量营养素饼图
     renderMacroChart(foodSummary);
 }
@@ -286,6 +289,61 @@ function loadTodayWorkouts(date) {
                     </div>
                 </div>
                 <span class="workout-calories">-${Math.round(workout.calories || 0)} kcal</span>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function loadTodayStudies(date) {
+    const studies = Storage.getStudiesByDate(date);
+    const summary = Storage.getDailyStudySummary(date);
+    const container = document.getElementById('todayStudyList');
+
+    // 更新统计
+    document.getElementById('todayStudyDuration').textContent = summary.duration;
+    document.getElementById('todayStudyItems').textContent = summary.items;
+    document.getElementById('todayStudyTasks').textContent = summary.completedTasks;
+
+    if (studies.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-graduation-cap"></i>
+                <p>今天还没有学习记录</p>
+            </div>
+        `;
+        return;
+    }
+
+    const categoryLabels = {
+        reading: '阅读',
+        coding: '编程',
+        course: '课程',
+        practice: '练习',
+        other: '其他'
+    };
+
+    const categoryIcons = {
+        reading: 'fa-book-reader',
+        coding: 'fa-code',
+        course: 'fa-chalkboard-teacher',
+        practice: 'fa-pencil-alt',
+        other: 'fa-folder'
+    };
+
+    let html = '';
+    studies.forEach(study => {
+        html += `
+            <div class="study-item-mini">
+                <div class="study-category-icon ${study.category}">
+                    <i class="fas ${categoryIcons[study.category] || 'fa-folder'}"></i>
+                </div>
+                <div class="study-item-info">
+                    <h4>${study.topic}</h4>
+                    <span>${categoryLabels[study.category] || study.category}</span>
+                </div>
+                <span class="study-duration">${study.duration}分钟</span>
             </div>
         `;
     });
@@ -1258,6 +1316,256 @@ function deleteStudy(id) {
 }
 
 // ==================== PDF 导出功能 ====================
+// 仪表盘导出今日完整报告
+function exportDashboardPDF() {
+    const today = new Date().toISOString().split('T')[0];
+    const foods = Storage.getFoodsByDate(today);
+    const workouts = Storage.getWorkoutsByDate(today);
+    const studies = Storage.getStudiesByDate(today);
+    const foodSummary = Storage.getDailySummary(today);
+    const workoutSummary = Storage.getDailyWorkoutSummary(today);
+    const studySummary = Storage.getDailyStudySummary(today);
+    const settings = Storage.getSettings();
+
+    const dateStr = new Date(today).toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+    });
+
+    const mealTypeLabels = {
+        breakfast: '早餐',
+        lunch: '午餐',
+        dinner: '晚餐',
+        snack: '加餐'
+    };
+
+    const workoutTypeLabels = {
+        running: '跑步',
+        cycling: '骑行',
+        swimming: '游泳',
+        strength: '力量训练',
+        walking: '步行',
+        hiit: 'HIIT',
+        yoga: '瑜伽',
+        other: '其他'
+    };
+
+    const categoryLabels = {
+        reading: '阅读',
+        coding: '编程',
+        course: '课程',
+        practice: '练习',
+        other: '其他'
+    };
+
+    // 生成食物列表HTML
+    let foodsHtml = '';
+    if (foods.length > 0) {
+        foods.forEach(food => {
+            foodsHtml += `
+                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 6px;">
+                    <span><strong>${mealTypeLabels[food.mealType]}</strong> - ${food.name} (${food.weight}g)</span>
+                    <span style="color: #2E86AB; font-weight: 600;">${Math.round(food.calories)} kcal</span>
+                </div>
+            `;
+        });
+    } else {
+        foodsHtml = '<p style="color: #999; text-align: center; padding: 20px;">暂无记录</p>';
+    }
+
+    // 生成运动列表HTML
+    let workoutsHtml = '';
+    if (workouts.length > 0) {
+        workouts.forEach(workout => {
+            workoutsHtml += `
+                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 6px;">
+                    <span><strong>${workoutTypeLabels[workout.type] || workout.type}</strong> - ${workout.duration}分钟${workout.distance ? ` · ${workout.distance}公里` : ''}</span>
+                    <span style="color: #28a745; font-weight: 600;">-${Math.round(workout.calories || 0)} kcal</span>
+                </div>
+            `;
+        });
+    } else {
+        workoutsHtml = '<p style="color: #999; text-align: center; padding: 20px;">暂无记录</p>';
+    }
+
+    // 生成学习列表HTML
+    let studiesHtml = '';
+    if (studies.length > 0) {
+        studies.forEach(study => {
+            const tasksCount = study.tasks ? study.tasks.length : 0;
+            studiesHtml += `
+                <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="background: #2E86AB; color: #fff; padding: 2px 10px; border-radius: 12px; font-size: 12px;">${categoryLabels[study.category] || study.category}</span>
+                        <span style="color: #2E86AB; font-weight: 600;">${study.duration}分钟</span>
+                    </div>
+                    <h4 style="font-size: 14px; margin-bottom: 6px;">${study.topic}</h4>
+                    <p style="font-size: 13px; color: #666; line-height: 1.6; margin-bottom: 6px;">${study.content.substring(0, 150)}${study.content.length > 150 ? '...' : ''}</p>
+                    ${tasksCount > 0 ? `<p style="font-size: 12px; color: #48bb78;">✓ 完成 ${tasksCount} 个任务</p>` : ''}
+                </div>
+            `;
+        });
+    } else {
+        studiesHtml = '<p style="color: #999; text-align: center; padding: 20px;">暂无记录</p>';
+    }
+
+    // 热量差
+    const calorieBalance = Math.round(foodSummary.calories - workoutSummary.calories);
+    const balanceColor = calorieBalance > 0 ? '#dc3545' : '#28a745';
+
+    const pdfContent = `
+        <div class="pdf-export-container" id="pdfContent">
+            <div class="pdf-header">
+                <h1 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <span style="color: #ff6b6b;">♥</span> FitTracker 每日报告
+                </h1>
+                <div class="pdf-date">${dateStr}</div>
+            </div>
+
+            <div class="pdf-section">
+                <h2 style="color: #2E86AB; border-bottom: 2px solid #2E86AB; padding-bottom: 8px;">
+                    📊 今日概览
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0;">
+                    <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, #ff6b6b22, #ff6b6b11); border-radius: 10px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #ff6b6b;">${Math.round(foodSummary.calories)}</div>
+                        <div style="font-size: 12px; color: #666;">摄入热量(kcal)</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, #2E86AB22, #2E86AB11); border-radius: 10px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #2E86AB;">${Math.round(workoutSummary.calories)}</div>
+                        <div style="font-size: 12px; color: #666;">运动消耗(kcal)</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, ${balanceColor}22, ${balanceColor}11); border-radius: 10px;">
+                        <div style="font-size: 28px; font-weight: 700; color: ${balanceColor};">${calorieBalance}</div>
+                        <div style="font-size: 12px; color: #666;">热量差(kcal)</div>
+                    </div>
+                    <div style="text-align: center; padding: 16px; background: linear-gradient(135deg, #667eea22, #667eea11); border-radius: 10px;">
+                        <div style="font-size: 28px; font-weight: 700; color: #667eea;">${studySummary.duration}</div>
+                        <div style="font-size: 12px; color: #666;">学习时长(分钟)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pdf-section">
+                <h2 style="color: #ff6b6b; border-bottom: 2px solid #ff6b6b; padding-bottom: 8px;">
+                    🍽️ 饮食记录
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 12px 0;">
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #2E86AB;">${Math.round(foodSummary.calories)}</div>
+                        <div style="font-size: 11px; color: #999;">热量 kcal</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #5470c6;">${Math.round(foodSummary.carbs)}</div>
+                        <div style="font-size: 11px; color: #999;">碳水 g</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #91cc75;">${Math.round(foodSummary.protein)}</div>
+                        <div style="font-size: 11px; color: #999;">蛋白质 g</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #fac858;">${Math.round(foodSummary.fat)}</div>
+                        <div style="font-size: 11px; color: #999;">脂肪 g</div>
+                    </div>
+                </div>
+                ${foodsHtml}
+            </div>
+
+            <div class="pdf-section">
+                <h2 style="color: #28a745; border-bottom: 2px solid #28a745; padding-bottom: 8px;">
+                    🏃 运动记录
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0;">
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #28a745;">${Math.round(workoutSummary.calories)}</div>
+                        <div style="font-size: 11px; color: #999;">消耗 kcal</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #28a745;">${workoutSummary.duration}</div>
+                        <div style="font-size: 11px; color: #999;">时长 分钟</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #28a745;">${workoutSummary.distance.toFixed(1)}</div>
+                        <div style="font-size: 11px; color: #999;">距离 公里</div>
+                    </div>
+                </div>
+                ${workoutsHtml}
+            </div>
+
+            <div class="pdf-section">
+                <h2 style="color: #667eea; border-bottom: 2px solid #667eea; padding-bottom: 8px;">
+                    📚 学习记录
+                </h2>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0;">
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #667eea;">${studySummary.duration}</div>
+                        <div style="font-size: 11px; color: #999;">学习时长 分钟</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #667eea;">${studySummary.items}</div>
+                        <div style="font-size: 11px; color: #999;">学习项目</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 20px; font-weight: 600; color: #48bb78;">${studySummary.completedTasks}</div>
+                        <div style="font-size: 11px; color: #999;">完成任务</div>
+                    </div>
+                </div>
+                ${studiesHtml}
+            </div>
+
+            <div class="pdf-footer">
+                <p>由 FitTracker 生成 · ${new Date().toLocaleString('zh-CN')}</p>
+            </div>
+        </div>
+    `;
+
+    // 创建临时元素
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = pdfContent;
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '0';
+    document.body.appendChild(tempDiv);
+
+    const element = tempDiv.querySelector('#pdfContent');
+    element.style.position = 'relative';
+    element.style.left = '0';
+    element.style.width = '210mm';
+    element.style.background = '#ffffff';
+    element.style.padding = '15mm';
+    element.style.fontFamily = '"Microsoft YaHei", "SimHei", sans-serif';
+
+    const opt = {
+        margin: 0,
+        filename: `FitTracker每日报告_${today}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        }
+    };
+
+    showToast('正在生成 PDF...', 'info');
+
+    html2pdf().set(opt).from(element).save().then(() => {
+        document.body.removeChild(tempDiv);
+        showToast('PDF 导出成功', 'success');
+    }).catch(err => {
+        document.body.removeChild(tempDiv);
+        showToast('PDF 导出失败', 'error');
+        console.error('PDF export error:', err);
+    });
+}
+
+// 学习记录页面导出
 function exportDailyPDF() {
     const date = currentStudyDate;
     const studies = Storage.getStudiesByDate(date);

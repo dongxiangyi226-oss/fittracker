@@ -90,6 +90,9 @@
                     <h2 class="page-title" id="pageTitle">仪表盘</h2>
                 </div>
                 <div class="header-right">
+                    <button class="btn btn-secondary btn-sm" id="dashboardExportBtn" onclick="exportDashboardPDF()" style="margin-right: 12px;">
+                        <i class="fas fa-file-pdf"></i> 导出今日报告
+                    </button>
                     <span class="current-date" id="currentDate"></span>
                 </div>
             </header>
@@ -211,6 +214,36 @@
                                 <div class="empty-state">
                                     <i class="fas fa-running"></i>
                                     <p>今天还没有运动记录</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 今日学习 -->
+                        <div class="card today-study">
+                            <div class="card-header">
+                                <h3 class="card-title">今日学习</h3>
+                                <button class="btn btn-primary btn-sm" onclick="openStudyModal()">
+                                    <i class="fas fa-plus"></i> 添加
+                                </button>
+                            </div>
+                            <div class="study-stats-mini">
+                                <div class="study-stat-mini">
+                                    <span class="study-stat-value" id="todayStudyDuration">0</span>
+                                    <span class="study-stat-label">分钟</span>
+                                </div>
+                                <div class="study-stat-mini">
+                                    <span class="study-stat-value" id="todayStudyItems">0</span>
+                                    <span class="study-stat-label">项目</span>
+                                </div>
+                                <div class="study-stat-mini">
+                                    <span class="study-stat-value" id="todayStudyTasks">0</span>
+                                    <span class="study-stat-label">任务</span>
+                                </div>
+                            </div>
+                            <div class="study-list-mini" id="todayStudyList">
+                                <div class="empty-state">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <p>今天还没有学习记录</p>
                                 </div>
                             </div>
                         </div>
