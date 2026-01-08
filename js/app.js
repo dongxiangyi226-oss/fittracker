@@ -7,6 +7,7 @@ let currentPage = 'dashboard';
 let currentFoodDate = new Date().toISOString().split('T')[0];
 let currentWorkoutDate = new Date().toISOString().split('T')[0];
 let currentStudyDate = new Date().toISOString().split('T')[0];
+let currentWeightDate = new Date().toISOString().split('T')[0];
 let currentMealFilter = 'all';
 let currentStudyFilter = 'all';
 let currentPeriod = 'week';
@@ -25,6 +26,7 @@ function initApp() {
     document.getElementById('foodDatePicker').value = currentFoodDate;
     document.getElementById('workoutDatePicker').value = currentWorkoutDate;
     document.getElementById('studyDatePicker').value = currentStudyDate;
+    document.getElementById('weightDatePicker').value = currentWeightDate;
 
     // 初始化导航
     initNavigation();
@@ -94,6 +96,7 @@ function navigateTo(page) {
         analytics: '数据分析',
         notes: '笔记',
         study: '学习记录',
+        weight: '体重记录',
         settings: '设置'
     };
     document.getElementById('pageTitle').textContent = titles[page] || '';
@@ -120,6 +123,9 @@ function navigateTo(page) {
             break;
         case 'study':
             loadStudyRecords();
+            break;
+        case 'weight':
+            loadWeightPage();
             break;
         case 'settings':
             loadSettings();
@@ -592,6 +598,11 @@ function searchNotes() {
 function loadSettings() {
     const settings = Storage.getSettings();
     document.getElementById('settingsNickname').value = settings.nickname || '';
+    document.getElementById('settingsGender').value = settings.gender || '';
+    document.getElementById('settingsBirthDate').value = settings.birthDate || '';
+    document.getElementById('settingsHeight').value = settings.height || '';
+    document.getElementById('settingsCurrentWeight').value = settings.currentWeight || '';
+    document.getElementById('settingsTargetWeight').value = settings.targetWeight || '';
     document.getElementById('settingsCalorieGoal').value = settings.calorieGoal || 2000;
     document.getElementById('settingsCarbsGoal').value = settings.carbsGoal || 250;
     document.getElementById('settingsProteinGoal').value = settings.proteinGoal || 100;
@@ -599,11 +610,37 @@ function loadSettings() {
 
     // 更新显示名称
     document.getElementById('displayUsername').textContent = settings.nickname || '用户';
+
+    // 计算并显示BMI
+    updateBMIDisplay();
+}
+
+function updateBMIDisplay() {
+    const height = parseFloat(document.getElementById('settingsHeight').value);
+    const weight = parseFloat(document.getElementById('settingsCurrentWeight').value);
+
+    if (height && weight && height > 0) {
+        const heightM = height / 100;
+        const bmi = (weight / (heightM * heightM)).toFixed(1);
+        let bmiStatus = '';
+        if (bmi < 18.5) bmiStatus = '偏瘦';
+        else if (bmi < 24) bmiStatus = '正常';
+        else if (bmi < 28) bmiStatus = '偏胖';
+        else bmiStatus = '肥胖';
+        document.getElementById('settingsBMI').value = `${bmi} (${bmiStatus})`;
+    } else {
+        document.getElementById('settingsBMI').value = '';
+    }
 }
 
 function saveSettings() {
     const settings = {
         nickname: document.getElementById('settingsNickname').value || '用户',
+        gender: document.getElementById('settingsGender').value,
+        birthDate: document.getElementById('settingsBirthDate').value,
+        height: parseFloat(document.getElementById('settingsHeight').value) || '',
+        currentWeight: parseFloat(document.getElementById('settingsCurrentWeight').value) || '',
+        targetWeight: parseFloat(document.getElementById('settingsTargetWeight').value) || '',
         calorieGoal: parseInt(document.getElementById('settingsCalorieGoal').value) || 2000,
         carbsGoal: parseInt(document.getElementById('settingsCarbsGoal').value) || 250,
         proteinGoal: parseInt(document.getElementById('settingsProteinGoal').value) || 100,
@@ -998,6 +1035,16 @@ function initFormEvents() {
             document.getElementById('foodFat').value = Math.round(food.fatPer100g * weight / 100 * 10) / 10;
         }
     });
+
+    // BMI自动计算
+    const heightInput = document.getElementById('settingsHeight');
+    const weightInput = document.getElementById('settingsCurrentWeight');
+    if (heightInput) {
+        heightInput.addEventListener('input', updateBMIDisplay);
+    }
+    if (weightInput) {
+        weightInput.addEventListener('input', updateBMIDisplay);
+    }
 }
 
 function initOtherEvents() {
@@ -1415,11 +1462,15 @@ function exportDashboardPDF() {
     const calorieBalance = Math.round(foodSummary.calories - workoutSummary.calories);
     const balanceColor = calorieBalance > 0 ? '#dc3545' : '#28a745';
 
+    const reportTitle = settings.nickname && settings.nickname !== '用户'
+        ? `${settings.nickname}的每日报告`
+        : 'FitTracker 每日报告';
+
     const pdfContent = `
         <div class="pdf-export-container" id="pdfContent">
             <div class="pdf-header">
                 <h1 style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <span style="color: #ff6b6b;">♥</span> FitTracker 每日报告
+                    <span style="color: #ff6b6b;">♥</span> ${reportTitle}
                 </h1>
                 <div class="pdf-date">${dateStr}</div>
             </div>
@@ -1572,6 +1623,7 @@ function exportDailyPDF() {
     const foodSummary = Storage.getDailySummary(date);
     const workoutSummary = Storage.getDailyWorkoutSummary(date);
     const studySummary = Storage.getDailyStudySummary(date);
+    const settings = Storage.getSettings();
 
     if (studies.length === 0) {
         showToast('当天没有学习记录可导出', 'error');
@@ -1592,6 +1644,10 @@ function exportDailyPDF() {
         day: 'numeric',
         weekday: 'long'
     });
+
+    const reportTitle = settings.nickname && settings.nickname !== '用户'
+        ? `${settings.nickname}的学习记录`
+        : '每日学习记录';
 
     // 创建PDF内容
     let studyItemsHtml = '';
@@ -1618,7 +1674,7 @@ function exportDailyPDF() {
     const pdfContent = `
         <div class="pdf-export-container" id="pdfContent">
             <div class="pdf-header">
-                <h1><i class="fas fa-graduation-cap"></i> 每日学习记录</h1>
+                <h1><i class="fas fa-graduation-cap"></i> ${reportTitle}</h1>
                 <div class="pdf-date">${dateStr}</div>
             </div>
 
@@ -1737,4 +1793,329 @@ function showToast(message, type = 'info') {
         toast.style.animation = 'slideIn 0.3s ease reverse';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// ==================== 体重记录页面 ====================
+function loadWeightPage() {
+    loadWeightRecord();
+    loadWeightStats();
+    loadWeightHistory();
+    renderWeightTrendChart();
+}
+
+function loadWeightRecord() {
+    const record = Storage.getWeightByDate(currentWeightDate);
+
+    if (record) {
+        document.getElementById('morningWeight').value = record.morningWeight || '';
+        document.getElementById('eveningWeight').value = record.eveningWeight || '';
+    } else {
+        document.getElementById('morningWeight').value = '';
+        document.getElementById('eveningWeight').value = '';
+    }
+}
+
+function saveWeightRecord() {
+    const morningWeight = parseFloat(document.getElementById('morningWeight').value);
+    const eveningWeight = parseFloat(document.getElementById('eveningWeight').value);
+
+    if (!morningWeight && !eveningWeight) {
+        showToast('请至少输入一个体重值', 'error');
+        return;
+    }
+
+    const weightData = {
+        date: currentWeightDate,
+        morningWeight: morningWeight || null,
+        eveningWeight: eveningWeight || null
+    };
+
+    Storage.saveWeight(weightData);
+    showToast('体重记录已保存', 'success');
+
+    // 更新设置中的当前体重（使用早间体重）
+    if (morningWeight) {
+        const settings = Storage.getSettings();
+        settings.currentWeight = morningWeight;
+        Storage.saveSettings(settings);
+    }
+
+    loadWeightStats();
+    loadWeightHistory();
+    renderWeightTrendChart();
+}
+
+function changeWeightDate(delta) {
+    const date = new Date(currentWeightDate);
+    date.setDate(date.getDate() + delta);
+    currentWeightDate = date.toISOString().split('T')[0];
+    document.getElementById('weightDatePicker').value = currentWeightDate;
+    loadWeightRecord();
+}
+
+function loadWeightStats() {
+    const settings = Storage.getSettings();
+    const latestWeight = Storage.getLatestWeight();
+    const weightChange = Storage.getWeightChange(7);
+
+    // 当前体重
+    const currentWeight = latestWeight ?
+        (latestWeight.morningWeight || latestWeight.eveningWeight) :
+        (settings.currentWeight || '--');
+    document.getElementById('currentWeightDisplay').textContent =
+        typeof currentWeight === 'number' ? currentWeight.toFixed(1) : currentWeight;
+
+    // 目标体重
+    const targetWeight = settings.targetWeight || '--';
+    document.getElementById('targetWeightDisplay').textContent =
+        typeof targetWeight === 'number' ? targetWeight.toFixed(1) : targetWeight;
+
+    // 距离目标
+    if (typeof currentWeight === 'number' && typeof targetWeight === 'number') {
+        const gap = (currentWeight - targetWeight).toFixed(1);
+        const gapElement = document.getElementById('weightGapDisplay');
+        gapElement.textContent = gap > 0 ? `+${gap}` : gap;
+        gapElement.className = 'weight-stat-value ' + (gap > 0 ? 'positive' : 'negative');
+    } else {
+        document.getElementById('weightGapDisplay').textContent = '--';
+    }
+
+    // 近7天变化
+    if (weightChange) {
+        const changeElement = document.getElementById('weeklyChangeDisplay');
+        const change = parseFloat(weightChange.change);
+        changeElement.textContent = change > 0 ? `+${change}` : change;
+        changeElement.className = 'weight-stat-value ' + (change > 0 ? 'positive' : 'negative');
+    } else {
+        document.getElementById('weeklyChangeDisplay').textContent = '--';
+    }
+}
+
+function loadWeightHistory() {
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 30);
+
+    const weights = Storage.getWeightsByDateRange(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+    ).reverse(); // 最新的在前
+
+    const container = document.getElementById('weightHistory');
+
+    if (weights.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-weight"></i>
+                <p>暂无体重记录</p>
+            </div>
+        `;
+        return;
+    }
+
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+    let html = '';
+    weights.forEach(record => {
+        const date = new Date(record.date);
+        const dateStr = `${date.getMonth() + 1}月${date.getDate()}日`;
+        const weekday = weekdays[date.getDay()];
+
+        html += `
+            <div class="weight-history-item">
+                <div class="weight-history-date">
+                    ${dateStr}
+                    <small>${weekday}</small>
+                </div>
+                <div class="weight-history-values">
+                    <div class="weight-history-value">
+                        <label>早间</label>
+                        <span>${record.morningWeight ? record.morningWeight.toFixed(1) : '--'}</span>
+                    </div>
+                    <div class="weight-history-value">
+                        <label>晚间</label>
+                        <span>${record.eveningWeight ? record.eveningWeight.toFixed(1) : '--'}</span>
+                    </div>
+                </div>
+                <div class="weight-history-actions">
+                    <button class="btn btn-icon btn-sm" onclick="editWeightRecord('${record.date}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-icon btn-sm" onclick="deleteWeightRecord('${record.date}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function editWeightRecord(date) {
+    currentWeightDate = date;
+    document.getElementById('weightDatePicker').value = date;
+    loadWeightRecord();
+    // 滚动到顶部
+    document.querySelector('.content-wrapper').scrollTop = 0;
+}
+
+function deleteWeightRecord(date) {
+    if (confirm('确定要删除这条体重记录吗？')) {
+        Storage.deleteWeight(date);
+        showToast('记录已删除', 'success');
+        loadWeightStats();
+        loadWeightHistory();
+        renderWeightTrendChart();
+    }
+}
+
+function renderWeightTrendChart() {
+    const chartDom = document.getElementById('weightTrendChart');
+    if (!chartDom) return;
+
+    const chart = echarts.init(chartDom);
+
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 29);
+
+    const weights = Storage.getWeightsByDateRange(
+        startDate.toISOString().split('T')[0],
+        today.toISOString().split('T')[0]
+    );
+
+    const settings = Storage.getSettings();
+
+    // 准备数据
+    const dates = [];
+    const morningData = [];
+    const eveningData = [];
+
+    for (let i = 0; i < 30; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toISOString().split('T')[0];
+        dates.push(`${date.getMonth() + 1}/${date.getDate()}`);
+
+        const record = weights.find(w => w.date === dateStr);
+        morningData.push(record && record.morningWeight ? record.morningWeight : null);
+        eveningData.push(record && record.eveningWeight ? record.eveningWeight : null);
+    }
+
+    const option = {
+        tooltip: {
+            trigger: 'axis',
+            formatter: function(params) {
+                let result = params[0].name + '<br/>';
+                params.forEach(p => {
+                    if (p.value !== null) {
+                        result += `${p.marker} ${p.seriesName}: ${p.value} kg<br/>`;
+                    }
+                });
+                return result;
+            }
+        },
+        legend: {
+            data: ['早间体重', '晚间体重'],
+            top: 10
+        },
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            top: 50,
+            containLabel: true
+        },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: dates,
+            axisLabel: {
+                interval: 4,
+                fontSize: 11
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'kg',
+            scale: true,
+            splitLine: {
+                lineStyle: {
+                    type: 'dashed'
+                }
+            }
+        },
+        series: [
+            {
+                name: '早间体重',
+                type: 'line',
+                data: morningData,
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 6,
+                connectNulls: true,
+                lineStyle: {
+                    color: '#2E86AB',
+                    width: 2
+                },
+                itemStyle: {
+                    color: '#2E86AB'
+                },
+                areaStyle: {
+                    color: {
+                        type: 'linear',
+                        x: 0,
+                        y: 0,
+                        x2: 0,
+                        y2: 1,
+                        colorStops: [
+                            { offset: 0, color: 'rgba(46, 134, 171, 0.3)' },
+                            { offset: 1, color: 'rgba(46, 134, 171, 0.05)' }
+                        ]
+                    }
+                },
+                markLine: settings.targetWeight ? {
+                    silent: true,
+                    data: [
+                        {
+                            yAxis: settings.targetWeight,
+                            name: '目标体重',
+                            lineStyle: {
+                                color: '#48bb78',
+                                type: 'dashed'
+                            },
+                            label: {
+                                formatter: '目标: {c} kg',
+                                position: 'end'
+                            }
+                        }
+                    ]
+                } : {}
+            },
+            {
+                name: '晚间体重',
+                type: 'line',
+                data: eveningData,
+                smooth: true,
+                symbol: 'circle',
+                symbolSize: 6,
+                connectNulls: true,
+                lineStyle: {
+                    color: '#A23B72',
+                    width: 2
+                },
+                itemStyle: {
+                    color: '#A23B72'
+                }
+            }
+        ]
+    };
+
+    chart.setOption(option);
+
+    // 响应式
+    window.addEventListener('resize', () => {
+        chart.resize();
+    });
 }

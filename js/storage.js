@@ -10,6 +10,7 @@ const Storage = {
         WORKOUTS: 'fittracker_workouts',
         NOTES: 'fittracker_notes',
         STUDIES: 'fittracker_studies',
+        WEIGHTS: 'fittracker_weights',
         SETTINGS: 'fittracker_settings',
         FOOD_DATABASE: 'fittracker_food_database'
     },
@@ -303,11 +304,96 @@ const Storage = {
         return studies.filter(study => study.date >= startDate && study.date <= endDate);
     },
 
+    // ==================== 体重记录 ====================
+    // 获取所有体重记录
+    getAllWeights() {
+        return this.getData(this.KEYS.WEIGHTS);
+    },
+
+    // 根据日期获取体重记录
+    getWeightByDate(date) {
+        const weights = this.getAllWeights();
+        return weights.find(w => w.date === date);
+    },
+
+    // 添加或更新体重记录
+    saveWeight(weightData) {
+        const weights = this.getAllWeights();
+        const existingIndex = weights.findIndex(w => w.date === weightData.date);
+
+        if (existingIndex !== -1) {
+            // 更新现有记录
+            weights[existingIndex] = {
+                ...weights[existingIndex],
+                ...weightData,
+                updatedAt: new Date().toISOString()
+            };
+        } else {
+            // 添加新记录
+            weights.push({
+                id: this.generateId(),
+                ...weightData,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        this.setData(this.KEYS.WEIGHTS, weights);
+        return weightData;
+    },
+
+    // 删除体重记录
+    deleteWeight(date) {
+        const weights = this.getAllWeights();
+        const filteredWeights = weights.filter(w => w.date !== date);
+        this.setData(this.KEYS.WEIGHTS, filteredWeights);
+    },
+
+    // 获取日期范围内的体重记录
+    getWeightsByDateRange(startDate, endDate) {
+        const weights = this.getAllWeights();
+        return weights.filter(w => w.date >= startDate && w.date <= endDate)
+                      .sort((a, b) => a.date.localeCompare(b.date));
+    },
+
+    // 获取最新体重记录
+    getLatestWeight() {
+        const weights = this.getAllWeights();
+        if (weights.length === 0) return null;
+        return weights.sort((a, b) => b.date.localeCompare(a.date))[0];
+    },
+
+    // 计算体重变化
+    getWeightChange(days = 7) {
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - days);
+
+        const weights = this.getWeightsByDateRange(
+            startDate.toISOString().split('T')[0],
+            today.toISOString().split('T')[0]
+        );
+
+        if (weights.length < 2) return null;
+
+        const firstWeight = weights[0].morningWeight || weights[0].eveningWeight;
+        const lastWeight = weights[weights.length - 1].morningWeight || weights[weights.length - 1].eveningWeight;
+
+        return {
+            change: (lastWeight - firstWeight).toFixed(1),
+            percentage: (((lastWeight - firstWeight) / firstWeight) * 100).toFixed(1)
+        };
+    },
+
     // ==================== 设置 ====================
     // 获取设置
     getSettings() {
         const defaultSettings = {
             nickname: '用户',
+            height: '',
+            currentWeight: '',
+            targetWeight: '',
+            gender: '',
+            birthDate: '',
             calorieGoal: 2000,
             carbsGoal: 250,
             proteinGoal: 100,
@@ -517,6 +603,7 @@ const Storage = {
             workouts: this.getAllWorkouts(),
             notes: this.getAllNotes(),
             studies: this.getAllStudies(),
+            weights: this.getAllWeights(),
             settings: this.getSettings(),
             foodDatabase: this.getFoodDatabase(),
             exportedAt: new Date().toISOString()
@@ -530,6 +617,7 @@ const Storage = {
             if (data.workouts) this.setData(this.KEYS.WORKOUTS, data.workouts);
             if (data.notes) this.setData(this.KEYS.NOTES, data.notes);
             if (data.studies) this.setData(this.KEYS.STUDIES, data.studies);
+            if (data.weights) this.setData(this.KEYS.WEIGHTS, data.weights);
             if (data.settings) this.saveSettings(data.settings);
             if (data.foodDatabase) this.setData(this.KEYS.FOOD_DATABASE, data.foodDatabase);
             return true;
@@ -545,6 +633,7 @@ const Storage = {
         localStorage.removeItem(this.KEYS.WORKOUTS);
         localStorage.removeItem(this.KEYS.NOTES);
         localStorage.removeItem(this.KEYS.STUDIES);
+        localStorage.removeItem(this.KEYS.WEIGHTS);
         localStorage.removeItem(this.KEYS.SETTINGS);
         localStorage.removeItem(this.KEYS.FOOD_DATABASE);
     }
